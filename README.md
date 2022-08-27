@@ -9,3 +9,4 @@ Things I learnt while working on this project
 - Using multiple fragments and using the supportFragmentManager to switch between fragments
 - Starting an activity that provides a result using the new ActivityContracts API
 - Deleting files stored in external directory
+- Creating Alert Dialog box
