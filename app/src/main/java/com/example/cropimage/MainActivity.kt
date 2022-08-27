@@ -1,5 +1,6 @@
 package com.example.cropimage
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageView
@@ -27,8 +29,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var messageFragment: MessageFragment
     private lateinit var imageFragment: ImageFragment
     private lateinit var getImage: ActivityResultLauncher<String?>
+    private lateinit var alertDeleteDialog: AlertDialog
     private var lastResult: Uri? = null
     private var lastOriginal: Uri? = null
+
 
     private val cropImage = registerForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
@@ -61,6 +65,31 @@ class MainActivity : AppCompatActivity() {
             } ?: messageFragment.setMessage(R.string.fail_message)
         }
 
+//        build dialog box
+        alertDeleteDialog = AlertDialog.Builder(this).apply {
+            setTitle("Delete Crop")
+//            setIcon(R.drawable.ic_delete)
+            setMessage("This cropped Image will be forever lost !")
+            setPositiveButton(
+                "Yes"
+            ) { dialog, _ ->
+                lastResult = lastResult?.let { previousImage ->
+                    deleteImage(previousImage)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Image Deleted Successfully",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    showFragment(messageFragment)
+                    null
+                }
+                dialog.dismiss()
+            }
+            setNegativeButton("No") { dialog, _ ->
+                dialog.cancel()
+            }
+
+        }.create()
 
 //        setOnClickListeners
         setOnClickListeners()
@@ -73,20 +102,23 @@ class MainActivity : AppCompatActivity() {
         binding.iBtnReCrop.setOnClickListener {
             lastOriginal?.let { lastUri ->
                 launchCropImage(lastUri)
-            }
+            } ?: Toast.makeText(this@MainActivity, "Select an Image first", Toast.LENGTH_SHORT)
+                .show()
         }
         binding.iBtnDelete.setOnClickListener {
-            showFragment(messageFragment)
-            val file = File(getExternalFilesDir("/Pictures/"), lastResult?.lastPathSegment)
-
-            file.delete()
-            Log.d("last", file.exists().toString())
-
+            lastResult?.let {
+                alertDeleteDialog.show()
+            } ?: Toast.makeText(this@MainActivity, "Crop an Image first", Toast.LENGTH_SHORT).show()
         }
     }
 
+    private fun deleteImage(imageUri: Uri): Boolean = File(
+        getExternalFilesDir("/Pictures/"),
+        imageUri.lastPathSegment.toString()
+    ).delete()
+
     private fun launchSelectImage() {
-        messageFragment.setMessage("Selecting images")
+        messageFragment.setMessage("Selecting images...")
         getImage.launch("image/*")
     }
 
